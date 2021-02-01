@@ -42,88 +42,110 @@ Vue.component('XAxis', {
 
 Vue.component('SeriesSelect', {
     template: `<div>
-                    <input type="checkbox" v-model="used" @change="$emit('series-select-change')" />{{displayName}}
-                    <select v-model="type"  @change="$emit('series-select-change')">
+                    <input type="checkbox" name="used" v-model="new$$used" @change="configChange" />{{name}}
+                    <label>| 类型</label>
+                    <select v-model="new$$type" name="type" @change="configChange">
                         <option value="line">线</option>
                         <option value="bar">柱</option>
                     </select>
+                    <label>| X轴：</label>
+                    <select v-model="new$$encode.x" @change="configChange">
+                        <option v-for="(item, index) in dimensions" :value="item.name">{{item.displayName}}</option>
+                    </select>
+                    <br />
+                    <label>| 颜色</label>
+                    <input type="text" v-model="new$$itemStyle.color" name="itemStyle.color" @change="configChange"/>
                 </div>`,
     props: {
-        name: String,
-        displayName: String,
-        index: Number,
-        checked: Boolean,
-        used: Boolean,
-        type: String
+        "used": Boolean,
+        "name": String,
+        "type": String,
+        "itemStyle": {
+            type: Object, default: function () {
+                return {};
+            }
+        },
+        "encode": {
+            type: Object, default: function () {
+                return {};
+            }
+        },
+        "dimensions": {type: Array, default: []}
     },
     data() {
-        return {}
+        let r = {};
+        for (let prop in this._props) {
+            if (prop === "dimensions") continue;
+            r["new$$" + prop] = JSON.parse(JSON.stringify(this[prop]));
+        }
+        return r;
+    },
+    methods: {
+        configChange: function (e) {
+            this.$emit("config-change", "series", this.getData());
+        },
+        getData: function () {
+            let r = {};
+            for (let prop in this._props) {
+                r[prop] = this["new$$" + prop];
+            }
+            return r;
+        }
     }
 })
 
 Vue.component('SeriesSelectList', {
     template: ` <div>
-                    <label>X轴数据：</label>
-                    <select ref="xDimSelect" :value="xDim" @change="seriesSelectChange">
-                        <option v-for="(item, index) in dimensions" :value="item.name">{{item.displayName}}</option>
-                    </select>
-                    <br />
                     <label>Y轴数据：</label>
                     <br />  
-                    <div v-for="(item, index) in dimensions" :key="item.name" >
-                        <series-select 
-                        @series-select-change="seriesSelectChange" 
-                        :display-name="item.displayName" 
-                        :name="item.name"
-                        :index="index" 
-                        :used="useds[item.displayName]" 
-                        :type="types[item.displayName]"/>
+                    <div v-for="(item, index) in new$$series" :key="item.name" >
+                        <series-select :dimensions="dimensions" v-bind="item" @config-change="seriesSelectChange"/>
                     </div>
                 </div>`,
-    props: ['dimensions', 'series', 'xDim'],
+    props: ['dimensions', 'series'],
     data() {
-        return {}
-    },
-    computed: {
-        useds: function () {
-            let result = {};
-            for (let i = 0; i < this.series.length; i++) {
-                let s = this.series[i];
-                result[s.name] = true;
+        let r = {};
+        for (let prop in this._props) {
+            r["new$$" + prop] = JSON.parse(JSON.stringify(this[prop]));
+            if (prop === 'series') {
+                for (const s of r["new$$series"]) {
+                    s["used"] = true;
+                }
+                for (let i = 0; i < this.dimensions.length; i++) {
+                    let dim = this.dimensions[i];
+                    if (!this.exists(dim, this.series)) {
+                        r["new$$series"].push({
+                            type: "line",
+                            name: dim.displayName,
+                            encode: {
+                                y: dim.name
+                            },
+                            itemStyle: {}
+                        });
+                    }
+                }
             }
-            return result;
-        },
-        types: function () {
-            let result = {};
-            for (let i = 0; i < this.dimensions.length; i++) {
-                let d = this.dimensions[i];
-                result[d.displayName] = "line";
-            }
-            for (let i = 0; i < this.series.length; i++) {
-                let s = this.series[i];
-                result[s.name] = s.type;
-            }
-            return result;
         }
+        return r;
     },
     methods: {
         seriesSelectChange: function () {
-            let series = [];
-            let xDim = this.$refs.xDimSelect.value;
-            this.$children.forEach((seriesSelect, index) => {
-                if (seriesSelect.used) {
-                    series.push({
-                        type: seriesSelect.type,
-                        name: seriesSelect.displayName,
-                        encode: {
-                            y: seriesSelect.name,
-                            x: xDim,
-                            tooltip: [0, 1, 2, 3]
-                        }
-                    });
+            let r = [];
+            this.$children.forEach((value, index) => {
+                let d = value.getData();
+                if (d.used === true) {
+                    r.push(d);
                 }
             });
-            this.$emit("series-change", series);
+            this.$emit("config-change", "series", r)
+        },
+        exists: function (dim, series) {
+            for (let j = 0; j < this.series.length; j++) {
+                if (dim.displayName === this.series[j].name) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 })
@@ -142,7 +164,17 @@ Vue.component("LegendComponent", {
                 颜色：<input type="text" ref="colors" :name="d.name" :value="legendData[d.name].color" @change="configChange" />
             </div>
         </div>`,
-    props: ["legend", "dimensions"],
+    props: {
+        "legend": {
+            type: Object,
+            default: function () {
+                return {
+                    data: []
+                };
+            }
+
+        }, "dimensions": {type: Array}
+    },
     data: function () {
         return {};
     },
@@ -152,13 +184,15 @@ Vue.component("LegendComponent", {
                 let r = {};
                 for (let j = 0; j < this.dimensions.length; j++) {
                     let dim = this.dimensions[j];
-                    for (let i = 0; i < this.legend.data.length; i++) {
-                        let ld = this.legend.data[i];
-                        if (ld.name === dim.displayName) {
-                            r[dim.name] = {
-                                checked: true,
-                                color: ld.textStyle === undefined ? undefined : ld.textStyle.color
-                            };
+                    if (this.legend && this.legend.data) {
+                        for (let i = 0; i < this.legend.data.length; i++) {
+                            let ld = this.legend.data[i];
+                            if (ld.name === dim.displayName) {
+                                r[dim.name] = {
+                                    checked: true,
+                                    color: ld.textStyle === undefined ? undefined : ld.textStyle.color
+                                };
+                            }
                         }
                     }
                     if (r[dim.name] === undefined) {
@@ -181,7 +215,7 @@ Vue.component("LegendComponent", {
                 }
                 console.info(name, checked);
             });
-            this.$emit("legend-change", result);
+            this.$emit("legend-change", "legend", result);
         }
     }
 })

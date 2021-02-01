@@ -6,8 +6,7 @@
     <!-- 引入 ECharts 文件 -->
     <script src="../lib/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.0.0/dist/echarts.min.js"></script>
-    <script src="../js/json_to_table.js"></script>
-    <script src="../data/football.js"></script>
+    <script src="../data/data2.js"></script>
     <script src="../js/component.js"></script>
 </head>
 
@@ -18,65 +17,64 @@
     <div style="width: 40%;height:500px;float: left;">
         <h2>折线图</h2>
         <h4>X轴</h4>
-        <x-axis v-bind="xAxis" @config-change="configChangeByName"></x-axis>
-
+        <x-axis v-bind="xAxis" @config-change="configChangeByNameNoReload"></x-axis>
         <h4>数据</h4>
-        <series-select-list :x-dim="series[0].encode.x === undefined ? undefined :series[0].encode.x"
-                            :dimensions="dataset.dimensions" :series="series"
-                            @series-change="seriesChange"></series-select-list>
+        <series-select-list :dimensions="dataset.dimensions" :series="series"
+                            @config-change="configChangeByName"></series-select-list>
         <h4>标题</h4>
-        <label>主标题：</label><input type="text" v-model="title.text" @change="configChange"/>
+        <label>主标题：</label><input type="text" v-model="title.text" @change="configChangeNoReload"/>
         <br/>
-        <label>X：</label><input type="text" v-model="title.left" @change="configChange"/>
-        <label>Y：</label><input type="text" v-model="title.top" @change="configChange"/>
+        <label>X：</label><input type="text" v-model="title.left" @change="configChangeNoReload"/>
+        <label>Y：</label><input type="text" v-model="title.top" @change="configChangeNoReload"/>
         <h4>图例</h4>
         <legend-component :legend="legend" :dimensions="dataset.dimensions"
-                          @legend-change="legendChange"></legend-component>
+                          @legend-change="configChangeByNameNoReload"></legend-component>
     </div>
-    <p id='showData'></p>
 </div>
 <script type="text/javascript">
     let config = {
         dataset: {
-            dimensions: footballDimensions,
-            source: football2
+            dimensions: data2Dimensions,
+            source: data2
         },
         title: {
             text: '标题'
         },
         tooltip: {},
-        legend: {
+        legend: {/*
             type: 'plain',
             show: true,
             data: [{
                 name: "主队进球数"
-            }]
+            }]*/
         },
         xAxis: {
-            type: 'category',
+          /*  type: 'category',
             name: '赛季',
-            show: true
+            show: true*/
         },
         yAxis: {},
         series:
-            [{
-                type: "line",
+            [/*{
+                type: "bar",
                 name: "主队进球数",
                 encode: {
                     y: "home_team_goal",
+                    x: "season",
                     tooltip: [0, 1]
                 },
-                itemStyle : {
-                    color : 'red'
+                itemStyle: {
+                    color: 'red'
                 }
             }, {
                 type: "line",
                 name: "比赛场数",
                 encode: {
                     y: "match_count",
+                    x: "season",
                     tooltip: [0, 1]
                 }
-            }]
+            }*/]
     };
     let vm = new Vue({
         el: "#page",
@@ -84,26 +82,22 @@
         methods: {
             configChangeByName: function (name, e) {
                 config[name] = e
-                myChart.setOption(config);
-            },
-            configChange: function (e) {
-                myChart.setOption(config);
-            },
-            seriesChange: function (series) {
-                config.series = series;
+                // console.info(e[0].encode.x, e[1].encode.x)
                 myChart.setOption(config, true);
             },
-            legendChange: function (legend) {
-                config.legend = legend;
-                myChart.setOption(config, true);
+            configChangeByNameNoReload: function (name, e) {
+                config[name] = e
+                myChart.setOption(config);
+            },
+            configChangeNoReload: function (e) {
+                myChart.setOption(config);
             }
         }
     })
     // 基于准备好的dom，初始化echarts实例
-    let myChart = echarts.init(document.getElementById('main'));
     // 使用刚指定的配置项和数据显示图表。
+    let myChart = echarts.init(document.getElementById('main'));
     myChart.setOption(config);
-    jsonToTable("showData", football1);
 </script>
 </body>
 

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <!-- 引入 ECharts 文件 -->
+    <script src="../lib/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.0.0/dist/echarts.min.js"></script>
+    <script src="../data/data2.js"></script>
+</head>
+
+<body>
+<!-- 为 ECharts 准备一个具备大小（宽高）的 DOM -->
+<div id="page" style="width: 100%;">
+    <div id="main" style="width: 60%;height:500px;float: left;"></div>
+    <div id="main2" style="width: 60%;height:500px;float: left;"></div>
+</div>
+<script type="text/javascript">
+    let config = {
+        dataset: {
+            dimensions: data2Dimensions,
+            source: data2
+        },
+        title: {
+            text: '各区销售额及利润'
+        },
+        tooltip: {},
+        legend: {},
+        xAxis: [{
+            type: 'category',
+            splitLine: {
+                show: false
+            }
+        }],
+        yAxis: [{
+            axisLabel: {
+                formatter: '{value} 万元'
+            }
+        }, {
+            show: false,
+            position: "right",
+            splitLine: {
+                show: false
+            }
+        }],
+        series:
+            [{
+                type: "bar"
+            }, {
+                type: "bar"
+            }, {
+                type: "line",
+                yAxisIndex: 1,
+                label: {
+                    show: true,
+                    formatter: "{@profit_rate}%"
+                }
+            }]
+    };
+    // 基于准备好的dom，初始化echarts实例
+    // 使用刚指定的配置项和数据显示图表。
+    let myChart = echarts.init(document.getElementById('main'));
+    let myChart2 = echarts.init(document.getElementById('main2'));
+    myChart.setOption(config);
+
+    let config2 = {
+        dataset: {
+            dimensions: data2Dimensions,
+            source: data2
+        },
+        title: {
+            text: '销售额&利润趋势'
+        },
+        tooltip: {},
+        legend: {},
+        xAxis: [{
+            type: 'category',
+            splitLine: {
+                show: false
+            }
+        }],
+        yAxis: [{
+            axisLabel: {
+                formatter: '{value} 万元'
+            }
+        }],
+        series:
+            [{
+                type: "line",
+                areaStyle: {}
+            }, {
+                type: "line",
+                areaStyle: {}
+            }]
+    };
+    myChart2.setOption(config2);
+</script>
+</body>
+
+</html>
